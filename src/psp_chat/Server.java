@@ -7,12 +7,13 @@ package psp_chat;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.util.ArrayList;
 import java.net.Socket;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
@@ -26,9 +27,17 @@ public class Server extends Thread {
     private ServerSocket serverSocket = null;
     private Socket clientSocket = null;
     private DataInputStream entradaCli = null;
+    private DataOutputStream salidaCli = null;
+    private static ArrayList<Socket> lClientes = new ArrayList<Socket>();
 
-    public Server(Socket socket) {
+    public Server() {
+
+    }
+
+    public Server(Socket socket, ArrayList<Socket> lClientes) {
         clientSocket = socket;
+        this.lClientes = lClientes;
+        lClientes.add(clientSocket);
     }
 
     public void run() {
@@ -40,17 +49,22 @@ public class Server extends Thread {
 
             //Abrimos la entrada para recibir los mensajes del cliente
             entradaCli = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
+            salidaCli = new DataOutputStream(clientSocket.getOutputStream());
             //Recogemos el nombre de usuario y indicamos que se ha conectado
             String usuario = entradaCli.readUTF();
             System.out.println(usuario + " se ha conectado.");
             
+
             while (conectado) {
                 //Mientras esté el cliente el servidor recibirá el texto
                 String mensaje = entradaCli.readUTF();
-
+                for (Socket cliente : lClientes) {
+                    String mensaje2 = usuario+":"+mensaje;
+                    enviarmsg(cliente,mensaje2);
+                }
                 if (!mensaje.equals("/bye")) {
                     //Si el texto no es /bye se muestra el mensaje junto con el nombre de usuario
-                    System.out.println(usuario + ": " + mensaje);
+                    System.out.println(usuario + ":" + mensaje);
                 } else {
                     //si es /bye el boolean se vuelve false y desconectamos
                     conectado = false;
@@ -75,25 +89,24 @@ public class Server extends Thread {
 
             System.out.println("Realizando el bind");
 
-            //pedimos por teclado la ip y el puerto a establecer
-            String ip = JOptionPane.showInputDialog("Indique IP donde alojar su servidor");
+            //pedimos por teclado el puerto a establecer
             int port = selecPuerto();
 
-            InetSocketAddress addr = new InetSocketAddress(ip, port);
+            InetSocketAddress addr = new InetSocketAddress("localhost", port);
             serverSocket.bind(addr);
-            System.out.println("Inicializando servicio en: " + ip);
+            System.out.println("Inicializando servicio en: localhost");
             System.out.println("Inicializando servicio en: " + port);
 
             System.out.println("Aceptando conexiones");
 
             while (serverSocket != null) {
-                
+
                 //empezamos la conexión con el cliente y empezamos un hilo
                 Socket newSocket = serverSocket.accept();
                 System.out.println("Conexión recibida");
                 System.out.println("cliente: " + newSocket);
 
-                Server hilo = new Server(newSocket);
+                Server hilo = new Server(newSocket, lClientes);
                 hilo.start();
             }
             System.out.println("Conexion recibida");
@@ -115,4 +128,16 @@ public class Server extends Thread {
             return 0;
         }
     }
+
+    public void enviarmsg(Socket socket, String mensaje) {
+
+        try {
+            salidaCli = new DataOutputStream(socket.getOutputStream());
+            salidaCli.writeUTF(mensaje);
+
+        } catch (IOException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
 }
