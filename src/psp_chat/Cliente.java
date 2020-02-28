@@ -30,7 +30,7 @@ public class Cliente {
 
     public static void main(String args[]) {
 
-     Server serv = new Server();
+     Server serv = new Server(); //USAR???
      
         try {
             System.out.println("Creando socket cliente");
@@ -50,18 +50,23 @@ public class Cliente {
 
             salidaServ.writeUTF(usuario);
             salidaServ.flush();
+            
+            String conecta = usuario +" se ha conectado.";
+            salidaServ.writeUTF(conecta);
+            salidaServ.flush();
+            
             String mensaje = JOptionPane.showInputDialog("");
            while(conectado){
             while (!mensaje.equals("/bye")) {
                 try {
-                    salidaServ.writeUTF(mensaje);
-                    salidaServ.flush();
+                   // salidaServ.writeUTF(mensaje);
+                    //salidaServ.flush();
 
                     String mensaje2 = entradaServ.readUTF();
                     System.out.println(mensaje2);
 
                 
-                    mensaje = JOptionPane.showInputDialog("");
+                    //mensaje = JOptionPane.showInputDialog("");
                 } catch (IOException ioe) {
                     System.out.println("Enviando error: " + ioe.getMessage());
                 }
@@ -70,6 +75,11 @@ public class Cliente {
            }
             salidaServ.writeUTF(mensaje);
             salidaServ.flush();
+            //Mensaje de desconexión
+            conecta = usuario +" se ha desconectado.";
+            salidaServ.writeUTF(conecta);
+            salidaServ.flush();
+            
             clienteSocket.close();
             entradaServ.close();
             salidaServ.close();

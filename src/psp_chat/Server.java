@@ -54,14 +54,13 @@ public class Server extends Thread {
             String usuario = entradaCli.readUTF();
             System.out.println(usuario + " se ha conectado.");
             
+            String conecta = entradaCli.readUTF();
+            broadcastStatus(conecta);
 
             while (conectado) {
-                //Mientras esté el cliente el servidor recibirá el texto
+                //Mientras esté el cliente el servidor recibirá el texto y lo devolverá a todos los usuarios
                 String mensaje = entradaCli.readUTF();
-                for (Socket cliente : lClientes) {
-                    String mensaje2 = usuario+":"+mensaje;
-                    enviarmsg(cliente,mensaje2);
-                }
+                broadcast(mensaje,usuario);
                 if (!mensaje.equals("/bye")) {
                     //Si el texto no es /bye se muestra el mensaje junto con el nombre de usuario
                     System.out.println(usuario + ":" + mensaje);
@@ -70,6 +69,10 @@ public class Server extends Thread {
                     conectado = false;
                 }
             }
+            
+            //Broadcast de desconexion
+            conecta = entradaCli.readUTF();
+            broadcastStatus(conecta);
             //Indicamos que el usuario se desconecta y cerramos la entrada.
             System.out.println(usuario + " se ha desconectado");
             entradaCli.close();
@@ -119,21 +122,42 @@ public class Server extends Thread {
     //Método para escribir el puerto sin que sea posible escribir letras y con una longitud mayor a 2
     public static int selecPuerto() {
         String puerto = JOptionPane.showInputDialog("Indique puerto donde alojar su servidor");
-
+        int port = 0;
         if (puerto.length() >= 2 && puerto.matches("[0-9]+")) {
-            int port = Integer.parseInt(puerto);
-            return port;
+            port = Integer.parseInt(puerto);
         } else {
-            selecPuerto();
-            return 0;
+            port = selecPuerto();
         }
+        return port;
+        
     }
 
-    public void enviarmsg(Socket socket, String mensaje) {
+    //Método para reenviar el mensaje recibido de un cliente a todos.
+    //Iteramos el ArrayList de Sockets para enviar a cada uno de los clientes el mensaje (Socket)
+    public void broadcast(String mensaje, String usuario) {
 
         try {
-            salidaCli = new DataOutputStream(socket.getOutputStream());
-            salidaCli.writeUTF(mensaje);
+            for (Socket cliente : lClientes) {
+                String mensaje2 = usuario + ":" + mensaje;
+                salidaCli = new DataOutputStream(cliente.getOutputStream());
+                salidaCli.writeUTF(mensaje2);
+            }
+                        salidaCli.flush();
+
+        } catch (IOException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    //Método para reenviar la conexión/desconexión de los clientes.
+    public void broadcastStatus(String mensaje) {
+
+        try {
+            for (Socket cliente : lClientes) {
+                salidaCli = new DataOutputStream(cliente.getOutputStream());
+                salidaCli.writeUTF(mensaje);
+            }
+            salidaCli.flush();
 
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
