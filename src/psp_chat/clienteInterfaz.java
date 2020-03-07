@@ -197,17 +197,29 @@ public class clienteInterfaz extends javax.swing.JFrame {
      */
     public static void main(String args[]) {
         try {
+            
             System.out.println("Creando socket cliente");
             Socket clienteSocket = new Socket();
             System.out.println("Estableciendo la conexion");
 
             String ip = JOptionPane.showInputDialog("Indique IP donde alojar su servidor");
+            if (ip == null){
+                System.exit(0);
+            }
             int port = selecPuerto();
 
             InetSocketAddress addr = new InetSocketAddress(ip, port);
             clienteSocket.connect(addr);
 
             usuario = JOptionPane.showInputDialog("Indique nombre de usuario");
+            if (usuario == null){
+                System.exit(0);
+            }
+            
+            //inicializamos interfaz
+            clienteInterfaz chat = new clienteInterfaz(clienteSocket);
+            chat.setVisible(true);
+            chat.setDefaultCloseOperation(3);
             entradaServ = new DataInputStream(clienteSocket.getInputStream());
             salidaServ = new DataOutputStream(clienteSocket.getOutputStream());
 
@@ -218,11 +230,6 @@ public class clienteInterfaz extends javax.swing.JFrame {
             salidaServ.writeInt(port);
             salidaServ.flush();
 
-            //inicializamos interfaz
-            clienteInterfaz chat = new clienteInterfaz(clienteSocket);
-            chat.setVisible(true);
-            chat.setDefaultCloseOperation(3);
-
             cuerpoChat.append("Conectado a la sala de chat" + "\n");
             String conecta = usuario + " acaba de conectarse a este chat";
             salidaServ.writeUTF(conecta);
@@ -231,9 +238,10 @@ public class clienteInterfaz extends javax.swing.JFrame {
             while (conectado) {
                 try {
                     mensaje2 = entradaServ.readUTF();
-                } catch (Exception ex) {
+                } catch (Exception ex) {               
                     System.out.println("Conexión con el servidor cerrada");
-                    conectado = false;
+                    close();
+                    System.exit(0);
                 }
                 cuerpoChat.append(mensaje2 + "\n");
             }

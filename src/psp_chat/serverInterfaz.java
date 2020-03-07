@@ -21,18 +21,18 @@ import javax.swing.JOptionPane;
  *
  * @author Mirroriced
  */
-public class serverInterfaz extends javax.swing.JFrame{
+public class serverInterfaz extends javax.swing.JFrame {
+
     public ServerSocket serverSocket = null;
-    public static  ArrayList<Socket> lClientes = new ArrayList<Socket>(); 
+    public static ArrayList<Socket> lClientes = new ArrayList<Socket>();
+
     /**
      * Creates new form serverInterfaz
      */
-    
-    public serverInterfaz(){
+
+    public serverInterfaz() {
         initComponents();
     }
-    
-    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -94,152 +94,165 @@ public class serverInterfaz extends javax.swing.JFrame{
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-            //inicializamos interfaz
-            serverInterfaz server = new serverInterfaz();
-            server.setVisible(true);
-            server.setDefaultCloseOperation(3);
-                 try {
+        //inicializamos interfaz
+        serverInterfaz server = new serverInterfaz();
+        server.setVisible(true);
+        server.setDefaultCloseOperation(3);
+        try {
             //realizamos la iniciación del serviodr
-            cuerpoServidor.append("Creando socket servidor"+"\n");
+            cuerpoServidor.append("Creando socket servidor" + "\n");
 
             ServerSocket serverSocket = new ServerSocket();
 
-            cuerpoServidor.append("Realizando el bind"+"\n");
+            cuerpoServidor.append("Realizando el bind" + "\n");
 
             //pedimos por teclado el puerto a establecer
             int port = selecPuerto();
 
             InetSocketAddress addr = new InetSocketAddress("localhost", port);
             serverSocket.bind(addr);
-            cuerpoServidor.append("Inicializando servicio en: localhost"+"\n");
-            cuerpoServidor.append("Inicializando servicio en: " + port+"\n");
-            
-            cuerpoServidor.append("Aceptando conexiones"+"\n");
-            cuerpoServidor.append("Ningún cliente conectado."+"\n");
+            cuerpoServidor.append("Inicializando servicio en: localhost" + "\n");
+            cuerpoServidor.append("Inicializando servicio en: " + port + "\n");
+
+            cuerpoServidor.append("Aceptando conexiones" + "\n");
+            cuerpoServidor.append("Ningún cliente conectado." + "\n");
             while (serverSocket != null) {
 
                 //empezamos la conexión con el cliente y empezamos un hilo
                 Socket newSocket = serverSocket.accept();
-                cuerpoServidor.append("Conexión recibida"+"\n");
+                cuerpoServidor.append("Conexión recibida" + "\n");
                 serverInterfaz.Server hilo = server.new Server(newSocket, lClientes);
                 hilo.start();
             }
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-        }   
-            
+        }
+
     }
-    
+
     //Método para escribir el puerto sin que sea posible escribir letras y con una longitud mayor a 2
     public static int selecPuerto() {
         String puerto = JOptionPane.showInputDialog("Indique puerto donde alojar su servidor");
         int port = 0;
-        if (puerto.length() >= 2 && puerto.matches("[0-9]+")) {
-            port = Integer.parseInt(puerto);
+        if (puerto != null) {
+            if (puerto.length() >= 2 && puerto.matches("[0-9]+")) {
+                port = Integer.parseInt(puerto);
+            } else {
+                port = selecPuerto();
+            }
         } else {
-            port = selecPuerto();
+            System.exit(0);
         }
         return port;
 
     }
 
-
     class Server extends Thread {
-    public  Socket clientSocket = null;
-    public  DataInputStream entradaCli = null;
-    public  DataOutputStream salidaCli = null;  
-        
-        
+
+        public Socket clientSocket = null;
+        public DataInputStream entradaCli = null;
+        public DataOutputStream salidaCli = null;
+
         public Server(Socket socket, ArrayList<Socket> lClientes) {
-        clientSocket = socket;
-        serverInterfaz.lClientes = lClientes;
-        lClientes.add(clientSocket);
-    }
-        
+            clientSocket = socket;
+            serverInterfaz.lClientes = lClientes;
+            lClientes.add(clientSocket);
+        }
+
         public void run() {
 
-        try {
-            //Marcamos que el cliente está conectado
-            boolean conectado = true;
+            try {
+                //Marcamos que el cliente está conectado
+                boolean conectado = true;
 
-            //Abrimos la entrada para recibir los mensajes del cliente
-            entradaCli = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
-            salidaCli = new DataOutputStream(clientSocket.getOutputStream());
-            //Recogemos el nombre de usuario y indicamos que se ha conectado
-            String usuario = entradaCli.readUTF();            
-            String ip = entradaCli.readUTF();
-            int port = entradaCli.readInt();
-            cuerpoServidor.append("Nuevo cliente conectado("+usuario+" / "+ip+" / "+port+")"+"\n");
-            cuerpoServidor.append("Actualmente hay "+lClientes.size()+" usuarios conectados."+"\n");  
-            
-            cuerpoServidor.append(usuario + " acaba de conectarse a este chat"+"\n");
-
-            String conecta = entradaCli.readUTF();
-            broadcastStatus(conecta);
-
-            while (conectado) {
-                //Mientras esté el cliente el servidor recibirá el texto y lo devolverá a todos los usuarios
-                String mensaje = entradaCli.readUTF();
-                if (!mensaje.equals("/bye")) {
-                    //Si el texto no es /bye se muestra el mensaje junto con el nombre de usuario
-                    broadcast(mensaje, usuario);
-                    cuerpoServidor.append(usuario + ":" + mensaje+"\n");
-                    System.out.println(usuario + ":" + mensaje);
-                } else {
-                    //si es /bye el boolean se vuelve false y desconectamos
-                    conectado = false;
+                //Abrimos la entrada para recibir los mensajes del cliente
+                entradaCli = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
+                salidaCli = new DataOutputStream(clientSocket.getOutputStream());
+                //Recogemos el nombre de usuario y indicamos que se ha conectado
+                String usuario="";
+                try{
+                usuario = entradaCli.readUTF();
+                }catch (Exception uservacío){
+                    cuerpoServidor.append("Conexión rechazada");
+                    lClientes.remove(clientSocket);
+                    entradaCli.close();
+                    salidaCli.close();
+                    clientSocket.close();
                 }
+                String ip = entradaCli.readUTF();
+                int port = entradaCli.readInt();
+                cuerpoServidor.append("Nuevo cliente conectado(" + usuario + " / " + ip + " / " + port + ")" + "\n");
+                cuerpoServidor.append("Actualmente hay " + lClientes.size() + " usuarios conectados." + "\n");
+
+                cuerpoServidor.append(usuario + " acaba de conectarse a este chat" + "\n");
+
+                String conecta = entradaCli.readUTF();
+                broadcastStatus(conecta);
+
+                while (conectado) {
+                    //Mientras esté el cliente el servidor recibirá el texto y lo devolverá a todos los usuarios
+                    String mensaje = entradaCli.readUTF();
+                    if (!mensaje.equals("/bye")) {
+                        //Si el texto no es /bye se muestra el mensaje junto con el nombre de usuario
+                        broadcast(mensaje, usuario);
+                        cuerpoServidor.append(usuario + ":" + mensaje + "\n");
+                        System.out.println(usuario + ":" + mensaje);
+                    } else {
+                        //si es /bye el boolean se vuelve false y desconectamos
+                        conectado = false;
+                    }
+                }
+
+                //Broadcast de desconexion
+                conecta = entradaCli.readUTF();
+                broadcastStatus(conecta);
+                //Indicamos que el usuario se desconecta y cerramos la entrada.
+                cuerpoServidor.append(usuario + " abandonó este chat" + "\n");
+                lClientes.remove(clientSocket);
+                if (lClientes.size() == 0) {
+                    cuerpoServidor.append("Ningún cliente conectado." + "\n");
+                }
+                entradaCli.close();
+                salidaCli.close();
+                clientSocket.close();
+
+            } catch (IOException ex) {
+                lClientes.remove(clientSocket);
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
+        }
 
-            //Broadcast de desconexion
-            conecta = entradaCli.readUTF();
-            broadcastStatus(conecta);
-            //Indicamos que el usuario se desconecta y cerramos la entrada.
-            cuerpoServidor.append(usuario + " abandonó este chat"+"\n");
-            lClientes.remove(clientSocket);
-            if(lClientes.size() ==0){
-                cuerpoServidor.append("Ningún cliente conectado."+"\n");
+        //Método para reenviar el mensaje recibido de un cliente a todos.
+        //Iteramos el ArrayList de Sockets para enviar a cada uno de los clientes el mensaje (Socket)
+        public void broadcast(String mensaje, String usuario) {
+
+            try {
+                for (Socket cliente : lClientes) {
+                    String mensaje2 = usuario + ": " + mensaje;
+                    salidaCli = new DataOutputStream(cliente.getOutputStream());
+                    salidaCli.writeUTF(mensaje2);
+                }
+                salidaCli.flush();
+
+            } catch (IOException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
-            entradaCli.close();
-            salidaCli.close();
-            clientSocket.close();
-
-        } catch (IOException ex) {
-            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
-        }
-        
-            //Método para reenviar el mensaje recibido de un cliente a todos.
-    //Iteramos el ArrayList de Sockets para enviar a cada uno de los clientes el mensaje (Socket)
-    public void broadcast(String mensaje, String usuario) {
 
-        try {
-            for (Socket cliente : lClientes) {
-                String mensaje2 = usuario + ": " + mensaje;
-                salidaCli = new DataOutputStream(cliente.getOutputStream());
-                salidaCli.writeUTF(mensaje2);
+        //Método para reenviar la conexión/desconexión de los clientes.
+        public void broadcastStatus(String mensaje) {
+
+            try {
+                for (Socket cliente : lClientes) {
+                    salidaCli = new DataOutputStream(cliente.getOutputStream());
+                    salidaCli.writeUTF(mensaje);
+                }
+                salidaCli.flush();
+
+            } catch (IOException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
-            salidaCli.flush();
-
-        } catch (IOException ex) {
-            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
-    }
-
-    //Método para reenviar la conexión/desconexión de los clientes.
-    public void broadcastStatus(String mensaje) {
-
-        try {
-            for (Socket cliente : lClientes) {
-                salidaCli = new DataOutputStream(cliente.getOutputStream());
-                salidaCli.writeUTF(mensaje);
-            }
-            salidaCli.flush();
-
-        } catch (IOException ex) {
-            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
