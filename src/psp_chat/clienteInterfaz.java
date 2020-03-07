@@ -5,6 +5,7 @@
  */
 package psp_chat;
 
+import java.awt.event.KeyEvent;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -21,16 +22,18 @@ import static psp_chat.Server.selecPuerto;
  */
 public class clienteInterfaz extends javax.swing.JFrame {
 
-    private static DataInputStream entradaServ = null;
-    private static DataOutputStream salidaServ = null;
-    private Socket clienteSocket = null;
-    private static String usuario;
+    private static DataInputStream entradaServ;
+    private static DataOutputStream salidaServ;
+    private static Socket clienteSocket;
+    private static String usuario = "usuario";
     private static String conecta;
     static boolean conectado = true;
+    private static String mensaje = "/bye";
     private static String mensaje2 = "";
 
-    public clienteInterfaz() {
+    public clienteInterfaz(Socket cliente) {
         initComponents();
+        this.clienteSocket = cliente;
     }
 
     /**
@@ -50,6 +53,11 @@ public class clienteInterfaz extends javax.swing.JFrame {
         btnEnviar = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                formWindowClosing(evt);
+            }
+        });
 
         jPanel1.setBackground(new java.awt.Color(204, 204, 255));
 
@@ -63,6 +71,11 @@ public class clienteInterfaz extends javax.swing.JFrame {
         cuerpoMensaje.setColumns(20);
         cuerpoMensaje.setFont(new java.awt.Font("DejaVu Sans", 0, 12)); // NOI18N
         cuerpoMensaje.setRows(5);
+        cuerpoMensaje.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                cuerpoMensajeKeyPressed(evt);
+            }
+        });
         jScrollPane2.setViewportView(cuerpoMensaje);
 
         btnEnviar.setText("Enviar");
@@ -79,13 +92,14 @@ public class clienteInterfaz extends javax.swing.JFrame {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(jScrollPane1)
+                        .addContainerGap())
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 572, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(28, 28, 28)
+                        .addGap(26, 26, 26)
                         .addComponent(btnEnviar)
-                        .addGap(0, 34, Short.MAX_VALUE)))
-                .addContainerGap())
+                        .addGap(0, 46, Short.MAX_VALUE))))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -97,9 +111,9 @@ public class clienteInterfaz extends javax.swing.JFrame {
                         .addGap(27, 27, 27)
                         .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(45, 45, 45)
+                        .addGap(48, 48, 48)
                         .addComponent(btnEnviar, javax.swing.GroupLayout.PREFERRED_SIZE, 38, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(36, Short.MAX_VALUE))
+                .addContainerGap(32, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -110,14 +124,14 @@ public class clienteInterfaz extends javax.swing.JFrame {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEnviarActionPerformed
-        String mensaje = cuerpoMensaje.getText();
+        mensaje = cuerpoMensaje.getText();
         if (!mensaje.equals("/bye")) {
 
             try {
@@ -127,19 +141,62 @@ public class clienteInterfaz extends javax.swing.JFrame {
                 Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            }else{
+        } else {
+            try {
+                salidaServ.writeUTF(mensaje);
+                salidaServ.flush();
                 conectado = false;
-
-                    }
-        
+                close();
+            } catch (IOException ex) {
+                Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        cuerpoMensaje.setText("");
     }//GEN-LAST:event_btnEnviarActionPerformed
+
+    private void cuerpoMensajeKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_cuerpoMensajeKeyPressed
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            mensaje = cuerpoMensaje.getText();
+
+            if (!mensaje.equals("/bye")) {
+
+                try {
+                    salidaServ.writeUTF(mensaje);
+                    salidaServ.flush();
+                } catch (IOException ex) {
+                    Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+            } else {
+                try {
+                    salidaServ.writeUTF(mensaje);
+                    salidaServ.flush();
+                    conectado = false;
+                    close();
+                } catch (IOException ex) {
+                    Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+            }
+            cuerpoMensaje.setText("");
+        }
+    }//GEN-LAST:event_cuerpoMensajeKeyPressed
+
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+        try {
+            salidaServ.writeUTF("/bye");
+            close();
+        } catch (IOException ex) {
+            Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_formWindowClosing
 
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        Server serv = new Server();
         try {
+            Server serv = new Server();
             System.out.println("Creando socket cliente");
             Socket clienteSocket = new Socket();
             System.out.println("Estableciendo la conexion");
@@ -150,7 +207,8 @@ public class clienteInterfaz extends javax.swing.JFrame {
             InetSocketAddress addr = new InetSocketAddress(ip, port);
             clienteSocket.connect(addr);
 
-            String usuario = JOptionPane.showInputDialog("Indique nombre de usuario");
+            System.out.println(clienteSocket.toString());
+            usuario = JOptionPane.showInputDialog("Indique nombre de usuario");
             entradaServ = new DataInputStream(clienteSocket.getInputStream());
             salidaServ = new DataOutputStream(clienteSocket.getOutputStream());
 
@@ -158,7 +216,7 @@ public class clienteInterfaz extends javax.swing.JFrame {
             salidaServ.flush();
 
             //inicializamos interfaz
-            clienteInterfaz chat = new clienteInterfaz();
+            clienteInterfaz chat = new clienteInterfaz(clienteSocket);
             chat.setVisible(true);
             chat.setDefaultCloseOperation(3);
             if (!chat.isEnabled()) {
@@ -171,34 +229,49 @@ public class clienteInterfaz extends javax.swing.JFrame {
             salidaServ.flush();
 
             while (conectado) {
-                mensaje2 = entradaServ.readUTF();
-                cuerpoChat.append(mensaje2+"\n");   
+                try {
+                    //    if(!mensaje.equals("/bye")){
+                    mensaje2 = entradaServ.readUTF();
+                } catch (Exception ex) {
+                    System.out.println("Conexión cerrada");
+                    conectado = false;
+                }
+                cuerpoChat.append(mensaje2 + "\n");
+                //    }
+                //   mensaje = entradaServ.readUTF();
+//             mensaje = cuerpoMensaje.getText();
             }
-            
-            if (!conectado){
-            try {
-                //Mensaje de desconexión
-                conecta = usuario + " se ha desconectado.";
-                salidaServ.writeUTF(conecta);
-                salidaServ.flush();
+            if (!conectado) {
+                System.out.println("Te has desconectado");
 
-                clienteSocket.close();
-                entradaServ.close();
-                salidaServ.close();
-            } catch (IOException ex) {
-                Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
-            }
             }
         } catch (IOException ex) {
-            Logger.getLogger(Cliente.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
         }
 
+    }
+
+    public static void close() {
+        try {
+            System.out.println("Desconectando...");
+            //Mensaje de desconexión
+            conecta = usuario + " se ha desconectado.";
+            salidaServ.writeUTF(conecta);
+            salidaServ.flush();
+            System.out.println(clienteSocket.toString());
+            entradaServ.close();
+            salidaServ.close();
+            clienteSocket.close();
+            System.exit(0);
+        } catch (IOException ex) {
+            System.out.println("Error al cerrar");
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnEnviar;
     private static javax.swing.JTextArea cuerpoChat;
-    private javax.swing.JTextArea cuerpoMensaje;
+    private static javax.swing.JTextArea cuerpoMensaje;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;

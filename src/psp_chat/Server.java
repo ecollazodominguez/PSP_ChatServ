@@ -53,29 +53,34 @@ public class Server extends Thread {
             //Recogemos el nombre de usuario y indicamos que se ha conectado
             String usuario = entradaCli.readUTF();
             System.out.println(usuario + " se ha conectado.");
-            
+            System.out.println(lClientes.size());
             String conecta = entradaCli.readUTF();
             broadcastStatus(conecta);
 
             while (conectado) {
                 //Mientras esté el cliente el servidor recibirá el texto y lo devolverá a todos los usuarios
                 String mensaje = entradaCli.readUTF();
-                broadcast(mensaje,usuario);
                 if (!mensaje.equals("/bye")) {
                     //Si el texto no es /bye se muestra el mensaje junto con el nombre de usuario
+//                    salidaCli.writeUTF("nobye");
+                    broadcast(mensaje, usuario);
                     System.out.println(usuario + ":" + mensaje);
                 } else {
                     //si es /bye el boolean se vuelve false y desconectamos
+//                    salidaCli.writeUTF("/bye");
                     conectado = false;
                 }
             }
-            
+
             //Broadcast de desconexion
             conecta = entradaCli.readUTF();
             broadcastStatus(conecta);
             //Indicamos que el usuario se desconecta y cerramos la entrada.
             System.out.println(usuario + " se ha desconectado");
+            lClientes.remove(clientSocket);
             entradaCli.close();
+            salidaCli.close();
+            clientSocket.close();
 
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
@@ -129,7 +134,7 @@ public class Server extends Thread {
             port = selecPuerto();
         }
         return port;
-        
+
     }
 
     //Método para reenviar el mensaje recibido de un cliente a todos.
@@ -138,17 +143,17 @@ public class Server extends Thread {
 
         try {
             for (Socket cliente : lClientes) {
-                String mensaje2 = usuario + ":" + mensaje;
+                String mensaje2 = usuario + ": " + mensaje;
                 salidaCli = new DataOutputStream(cliente.getOutputStream());
                 salidaCli.writeUTF(mensaje2);
             }
-                        salidaCli.flush();
+            salidaCli.flush();
 
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
     //Método para reenviar la conexión/desconexión de los clientes.
     public void broadcastStatus(String mensaje) {
 
