@@ -14,7 +14,7 @@ import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
-import static psp_chat.Server.selecPuerto;
+import static psp_chat.serverInterfaz.selecPuerto;
 
 /**
  *
@@ -64,6 +64,7 @@ public class clienteInterfaz extends javax.swing.JFrame {
         cuerpoChat.setEditable(false);
         cuerpoChat.setBackground(new java.awt.Color(241, 241, 241));
         cuerpoChat.setColumns(20);
+        cuerpoChat.setFont(new java.awt.Font("Monospaced", 1, 18)); // NOI18N
         cuerpoChat.setRows(5);
         jScrollPane1.setViewportView(cuerpoChat);
 
@@ -196,7 +197,6 @@ public class clienteInterfaz extends javax.swing.JFrame {
      */
     public static void main(String args[]) {
         try {
-            Server serv = new Server();
             System.out.println("Creando socket cliente");
             Socket clienteSocket = new Socket();
             System.out.println("Estableciendo la conexion");
@@ -207,42 +207,39 @@ public class clienteInterfaz extends javax.swing.JFrame {
             InetSocketAddress addr = new InetSocketAddress(ip, port);
             clienteSocket.connect(addr);
 
-            System.out.println(clienteSocket.toString());
             usuario = JOptionPane.showInputDialog("Indique nombre de usuario");
             entradaServ = new DataInputStream(clienteSocket.getInputStream());
             salidaServ = new DataOutputStream(clienteSocket.getOutputStream());
 
             salidaServ.writeUTF(usuario);
             salidaServ.flush();
+            salidaServ.writeUTF(ip);
+            salidaServ.flush();
+            salidaServ.writeInt(port);
+            salidaServ.flush();
 
             //inicializamos interfaz
             clienteInterfaz chat = new clienteInterfaz(clienteSocket);
             chat.setVisible(true);
             chat.setDefaultCloseOperation(3);
-            if (!chat.isEnabled()) {
-                System.out.println("Cerrando el socket cliente");
-                clienteSocket.close();
-            }
 
-            String conecta = usuario + " se ha conectado.";
+            cuerpoChat.append("Conectado a la sala de chat" + "\n");
+            String conecta = usuario + " acaba de conectarse a este chat";
             salidaServ.writeUTF(conecta);
             salidaServ.flush();
 
             while (conectado) {
                 try {
-                    //    if(!mensaje.equals("/bye")){
                     mensaje2 = entradaServ.readUTF();
                 } catch (Exception ex) {
-                    System.out.println("Conexión cerrada");
+                    System.out.println("Conexión con el servidor cerrada");
                     conectado = false;
                 }
                 cuerpoChat.append(mensaje2 + "\n");
-                //    }
-                //   mensaje = entradaServ.readUTF();
-//             mensaje = cuerpoMensaje.getText();
             }
             if (!conectado) {
                 System.out.println("Te has desconectado");
+                System.exit(0);
 
             }
         } catch (IOException ex) {
@@ -255,7 +252,7 @@ public class clienteInterfaz extends javax.swing.JFrame {
         try {
             System.out.println("Desconectando...");
             //Mensaje de desconexión
-            conecta = usuario + " se ha desconectado.";
+            conecta = usuario + " abandonó este chat.";
             salidaServ.writeUTF(conecta);
             salidaServ.flush();
             System.out.println(clienteSocket.toString());
