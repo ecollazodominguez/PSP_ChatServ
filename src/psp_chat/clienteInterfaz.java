@@ -132,10 +132,10 @@ public class clienteInterfaz extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEnviarActionPerformed
-       //Al darle al botón enviar, cogemos el texto
-       //si no contiene nada, no hace nada
-       //si contiene /bye, envia el mensaje y cierra conexiones
-       //si no contiene /bye envia solo el mensaje.
+        //Al darle al botón enviar, cogemos el texto
+        //si no contiene nada, no hace nada
+        //si contiene /bye, envia el mensaje y cierra conexiones
+        //si no contiene /bye envia solo el mensaje.
         mensaje = cuerpoMensaje.getText();
         if (!mensaje.equals("")) {
             if (!mensaje.equals("/bye")) {
@@ -151,9 +151,9 @@ public class clienteInterfaz extends javax.swing.JFrame {
                 try {
                     salidaServ.writeUTF(mensaje);
                     salidaServ.flush();
-                                conecta = usuario + " abandonó este chat.";
-            salidaServ.writeUTF(conecta);
-            salidaServ.flush();
+                    conecta = usuario + " abandonó este chat.";
+                    salidaServ.writeUTF(conecta);
+                    salidaServ.flush();
                     close();
                 } catch (IOException ex) {
                     Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
@@ -164,11 +164,11 @@ public class clienteInterfaz extends javax.swing.JFrame {
     }//GEN-LAST:event_btnEnviarActionPerformed
 
     private void cuerpoMensajeKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_cuerpoMensajeKeyPressed
-       //Al darle a la tecla ENTER, cogemos el texto
-       //si no contiene nada, no hace nada
-       //si contiene /bye, envia el mensaje y cierra conexiones
-       //si no contiene /bye envia solo el mensaje.
-        
+        //Al darle a la tecla ENTER, cogemos el texto
+        //si no contiene nada, no hace nada
+        //si contiene /bye, envia el mensaje y cierra conexiones
+        //si no contiene /bye envia solo el mensaje.
+
         if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
             mensaje = cuerpoMensaje.getText();
             if (!mensaje.equals("")) {
@@ -194,8 +194,8 @@ public class clienteInterfaz extends javax.swing.JFrame {
                     }
 
                 }
-                cuerpoMensaje.setText("");
             }
+            cuerpoMensaje.setText("");
         }
     }//GEN-LAST:event_cuerpoMensajeKeyPressed
 
@@ -251,6 +251,13 @@ public class clienteInterfaz extends javax.swing.JFrame {
             entradaServ = new DataInputStream(clienteSocket.getInputStream());
             salidaServ = new DataOutputStream(clienteSocket.getOutputStream());
 
+            //recibimos el mensaje de si el chat está lleno o no y actuamos
+            String limite = entradaServ.readUTF();
+            if (limite.equals("lleno")) {
+                JOptionPane.showMessageDialog(null, "El chat está lleno");
+                close();
+            }
+
             //mandamos al servidor los datos del usuario
             salidaServ.writeUTF(usuario);
             salidaServ.flush();
@@ -270,7 +277,7 @@ public class clienteInterfaz extends javax.swing.JFrame {
                     mensaje2 = entradaServ.readUTF();
                 } catch (Exception ex) {
                     //Si el servidor se desconecta se avisa y la conexión termina
-                    JOptionPane.showMessageDialog(null,"Conexión con el servidor cerrada");
+                    JOptionPane.showMessageDialog(null, "Conexión con el servidor cerrada");
                     conectado = false;
                 }
                 //añadimos al chat lo recibido
@@ -296,7 +303,6 @@ public class clienteInterfaz extends javax.swing.JFrame {
         try {
             System.out.println("Desconectando...");
             //Mensaje de desconexión
-            System.out.println(clienteSocket.toString());
             entradaServ.close();
             salidaServ.close();
             clienteSocket.close();

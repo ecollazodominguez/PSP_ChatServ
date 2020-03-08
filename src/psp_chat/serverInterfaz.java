@@ -26,6 +26,7 @@ public class serverInterfaz extends javax.swing.JFrame {
     public ServerSocket serverSocket = null;
     public static ArrayList<Socket> lClientes = new ArrayList<Socket>();
     public static int contador = 0;
+    public static boolean lleno;
 
     /**
      * Creates new form serverInterfaz
@@ -122,6 +123,16 @@ public class serverInterfaz extends javax.swing.JFrame {
                 //empezamos la conexión con el cliente y empezamos un hilo
                 Socket newSocket = serverSocket.accept();
                 cuerpoServidor.append("Conexión recibida" + "\n");
+                
+                //Limitamos las conexiones a 10, si se sobrepasa lleno se vuelve true
+                // y suma el contador que posteriormente al cerrar sockets se restará.
+                if (contador < 10) {
+                    contador++;
+                    lleno = false;
+                } else {
+                    contador++;
+                    lleno = true;
+                }
                 serverInterfaz.Server hilo = server.new Server(newSocket, lClientes);
                 hilo.start();
 
@@ -161,12 +172,21 @@ public class serverInterfaz extends javax.swing.JFrame {
         public void run() {
 
             try {
+
                 //Marcamos que el cliente está conectado
                 boolean conectado = true;
 
                 //Abrimos la entrada para recibir los mensajes del cliente
                 entradaCli = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
                 salidaCli = new DataOutputStream(clientSocket.getOutputStream());
+
+                //tratamos el limite de clientes, si está lleno envia mensaje "lleno" y desconecta
+                //si no lo está envía nolleno y continua.
+                if (lleno) {
+                    salidaCli.writeUTF("lleno");
+                    conectado = false;
+                }
+                salidaCli.writeUTF("nolleno");
                 //Recogemos el nombre de usuario y indicamos que se ha conectado
                 String usuario = "";
                 try {
@@ -205,11 +225,13 @@ public class serverInterfaz extends javax.swing.JFrame {
                     if (lClientes.size() == 0) {
                         cuerpoServidor.append("Ningún cliente conectado." + "\n");
                     }
+                    contador--;
                     entradaCli.close();
                     clientSocket.close();
                     //Tratamos excepción de si al escribir el usuario se cancela acción.
                 } catch (Exception usercancel) {
                     cuerpoServidor.append("Conexión rechazada" + "\n");
+                    contador--;
                     lClientes.remove(clientSocket);
                     entradaCli.close();
                     clientSocket.close();
