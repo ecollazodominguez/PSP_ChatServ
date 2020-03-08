@@ -25,13 +25,14 @@ public class serverInterfaz extends javax.swing.JFrame {
 
     public ServerSocket serverSocket = null;
     public static ArrayList<Socket> lClientes = new ArrayList<Socket>();
+    public static int contador = 0;
 
     /**
      * Creates new form serverInterfaz
      */
-
     public serverInterfaz() {
         initComponents();
+
     }
 
     /**
@@ -123,6 +124,7 @@ public class serverInterfaz extends javax.swing.JFrame {
                 cuerpoServidor.append("Conexión recibida" + "\n");
                 serverInterfaz.Server hilo = server.new Server(newSocket, lClientes);
                 hilo.start();
+
             }
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
@@ -130,23 +132,20 @@ public class serverInterfaz extends javax.swing.JFrame {
 
     }
 
-    //Método para escribir el puerto sin que sea posible escribir letras y con una longitud mayor a 2
+    //Método para escribir el puerto sin que sea posible escribir letras y con una longitud mayor a 2 y menor a 5
     public static int selecPuerto() {
         String puerto = JOptionPane.showInputDialog("Indique puerto donde alojar su servidor");
         int port = 0;
-        if (puerto != null) {
-            if (puerto.length() >= 2 && puerto.matches("[0-9]+")) {
-                port = Integer.parseInt(puerto);
-            } else {
-                port = selecPuerto();
-            }
+        if (puerto.length() >= 2 && puerto.matches("[0-9]+") && puerto.length() <= 4) {
+            port = Integer.parseInt(puerto);
         } else {
-            System.exit(0);
+            JOptionPane.showMessageDialog(null, "Escriba un puerto correcto");
+            port = selecPuerto();
         }
         return port;
-
     }
 
+    //clase interna que usaremos como hilo.
     class Server extends Thread {
 
         public Socket clientSocket = null;
@@ -169,51 +168,52 @@ public class serverInterfaz extends javax.swing.JFrame {
                 entradaCli = new DataInputStream(new BufferedInputStream(clientSocket.getInputStream()));
                 salidaCli = new DataOutputStream(clientSocket.getOutputStream());
                 //Recogemos el nombre de usuario y indicamos que se ha conectado
-                String usuario="";
-                try{
-                usuario = entradaCli.readUTF();
-                }catch (Exception uservacío){
-                    cuerpoServidor.append("Conexión rechazada");
+                String usuario = "";
+                try {
+                    usuario = entradaCli.readUTF();
+                    String ip = entradaCli.readUTF();
+                    int port = entradaCli.readInt();
+                    cuerpoServidor.append("Nuevo cliente conectado(" + usuario + " / " + ip + " / " + port + ")" + "\n");
+                    cuerpoServidor.append("Actualmente hay " + lClientes.size() + " usuarios conectados." + "\n");
+
+                    //Mandamos a todos los clientes que el usuario se ha conectado
+                    cuerpoServidor.append(usuario + " acaba de conectarse a este chat" + "\n");
+                    String conecta = entradaCli.readUTF();
+                    broadcastStatus(conecta);
+
+                    while (conectado) {
+                        //Mientras esté el cliente el servidor recibirá el texto y lo devolverá a todos los usuarios
+                        String mensaje = entradaCli.readUTF();
+                        if (!mensaje.equals("/bye")) {
+                            //Si el texto no es /bye se muestra el mensaje junto con el nombre de usuario
+                            broadcast(mensaje, usuario);
+                            cuerpoServidor.append(usuario + ":" + mensaje + "\n");
+                        } else {
+                            //si es /bye el boolean se vuelve false y desconectamos
+                            conectado = false;
+                        }
+                    }
+
+                    //Broadcast de desconexion
+                    conecta = entradaCli.readUTF();
+                    broadcastStatus(conecta);
+                    //Indicamos que el usuario se desconecta y cerramos la entrada.
+                    cuerpoServidor.append(usuario + " abandonó este chat" + "\n");
+                    //Quitamos de la lista el socket cliente
+                    lClientes.remove(clientSocket);
+                    // si no hay ningun cliente lo indicamos
+                    if (lClientes.size() == 0) {
+                        cuerpoServidor.append("Ningún cliente conectado." + "\n");
+                    }
+                    entradaCli.close();
+                    clientSocket.close();
+                    //Tratamos excepción de si al escribir el usuario se cancela acción.
+                } catch (Exception usercancel) {
+                    cuerpoServidor.append("Conexión rechazada" + "\n");
                     lClientes.remove(clientSocket);
                     entradaCli.close();
                     clientSocket.close();
                 }
-                String ip = entradaCli.readUTF();
-                int port = entradaCli.readInt();
-                cuerpoServidor.append("Nuevo cliente conectado(" + usuario + " / " + ip + " / " + port + ")" + "\n");
-                cuerpoServidor.append("Actualmente hay " + lClientes.size() + " usuarios conectados." + "\n");
-
-                cuerpoServidor.append(usuario + " acaba de conectarse a este chat" + "\n");
-
-                String conecta = entradaCli.readUTF();
-                broadcastStatus(conecta);
-
-                while (conectado) {
-                    //Mientras esté el cliente el servidor recibirá el texto y lo devolverá a todos los usuarios
-                    String mensaje = entradaCli.readUTF();
-                    if (!mensaje.equals("/bye")) {
-                        //Si el texto no es /bye se muestra el mensaje junto con el nombre de usuario
-                        broadcast(mensaje, usuario);
-                        cuerpoServidor.append(usuario + ":" + mensaje + "\n");
-                        System.out.println(usuario + ":" + mensaje);
-                    } else {
-                        //si es /bye el boolean se vuelve false y desconectamos
-                        conectado = false;
-                    }
-                }
-
-                //Broadcast de desconexion
-                conecta = entradaCli.readUTF();
-                broadcastStatus(conecta);
-                //Indicamos que el usuario se desconecta y cerramos la entrada.
-                cuerpoServidor.append(usuario + " abandonó este chat" + "\n");
-                lClientes.remove(clientSocket);
-                if (lClientes.size() == 0) {
-                    cuerpoServidor.append("Ningún cliente conectado." + "\n");
-                }
-                entradaCli.close();
-                clientSocket.close();
-
             } catch (IOException ex) {
                 lClientes.remove(clientSocket);
                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
@@ -251,6 +251,7 @@ public class serverInterfaz extends javax.swing.JFrame {
                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables

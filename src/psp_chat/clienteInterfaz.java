@@ -132,33 +132,12 @@ public class clienteInterfaz extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnEnviarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEnviarActionPerformed
+       //Al darle al botón enviar, cogemos el texto
+       //si no contiene nada, no hace nada
+       //si contiene /bye, envia el mensaje y cierra conexiones
+       //si no contiene /bye envia solo el mensaje.
         mensaje = cuerpoMensaje.getText();
-        if (!mensaje.equals("/bye")) {
-
-            try {
-                salidaServ.writeUTF(mensaje);
-                salidaServ.flush();
-            } catch (IOException ex) {
-                Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
-        } else {
-            try {
-                salidaServ.writeUTF(mensaje);
-                salidaServ.flush();
-                conectado = false;
-                close();
-            } catch (IOException ex) {
-                Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        cuerpoMensaje.setText("");
-    }//GEN-LAST:event_btnEnviarActionPerformed
-
-    private void cuerpoMensajeKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_cuerpoMensajeKeyPressed
-        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
-            mensaje = cuerpoMensaje.getText();
-
+        if (!mensaje.equals("")) {
             if (!mensaje.equals("/bye")) {
 
                 try {
@@ -172,27 +151,62 @@ public class clienteInterfaz extends javax.swing.JFrame {
                 try {
                     salidaServ.writeUTF(mensaje);
                     salidaServ.flush();
-                    conectado = false;
-            conecta = usuario + " abandonó este chat.";
+                                conecta = usuario + " abandonó este chat.";
             salidaServ.writeUTF(conecta);
             salidaServ.flush();
                     close();
                 } catch (IOException ex) {
                     Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
                 }
-
             }
             cuerpoMensaje.setText("");
+        }
+    }//GEN-LAST:event_btnEnviarActionPerformed
+
+    private void cuerpoMensajeKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_cuerpoMensajeKeyPressed
+       //Al darle a la tecla ENTER, cogemos el texto
+       //si no contiene nada, no hace nada
+       //si contiene /bye, envia el mensaje y cierra conexiones
+       //si no contiene /bye envia solo el mensaje.
+        
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            mensaje = cuerpoMensaje.getText();
+            if (!mensaje.equals("")) {
+                if (!mensaje.equals("/bye")) {
+
+                    try {
+                        salidaServ.writeUTF(mensaje);
+                        salidaServ.flush();
+                    } catch (IOException ex) {
+                        Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+
+                } else {
+                    try {
+                        salidaServ.writeUTF(mensaje);
+                        salidaServ.flush();
+                        conecta = usuario + " abandonó este chat.";
+                        salidaServ.writeUTF(conecta);
+                        salidaServ.flush();
+                        close();
+                    } catch (IOException ex) {
+                        Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+
+                }
+                cuerpoMensaje.setText("");
+            }
         }
     }//GEN-LAST:event_cuerpoMensajeKeyPressed
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+        //Al cerrar en la X envia un /bye y cerramos conexiones avisando a los usuarios
         try {
             salidaServ.writeUTF("/bye");
-            close();
             conecta = usuario + " abandonó este chat.";
             salidaServ.writeUTF(conecta);
             salidaServ.flush();
+            close();
         } catch (IOException ex) {
             Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -203,25 +217,33 @@ public class clienteInterfaz extends javax.swing.JFrame {
      */
     public static void main(String args[]) {
         try {
-            
+
             System.out.println("Creando socket cliente");
             Socket clienteSocket = new Socket();
             System.out.println("Estableciendo la conexion");
 
+            //Pedimos IP y tratamos diferentes problemas (nulos, host)
             String ip = JOptionPane.showInputDialog("Indique IP donde alojar su servidor");
-            if (ip == null){
+            if (ip == null) {
+                System.exit(0);
+            } else if (!ip.equals("localhost")) {
+                JOptionPane.showMessageDialog(null, "IP innacesible");
                 System.exit(0);
             }
             int port = selecPuerto();
 
-            InetSocketAddress addr = new InetSocketAddress(ip, port);
-            clienteSocket.connect(addr);
-
-            usuario = JOptionPane.showInputDialog("Indique nombre de usuario");
-            if (usuario == null){
+            try {
+                InetSocketAddress addr = new InetSocketAddress(ip, port);
+                clienteSocket.connect(addr);
+            } catch (Exception rechazado) {
+                JOptionPane.showMessageDialog(null, "Conexión rechazada");
                 System.exit(0);
             }
-            
+
+            usuario = selecUsuario();
+            if (usuario == null) {
+                System.exit(0);
+            }
             //inicializamos interfaz
             clienteInterfaz chat = new clienteInterfaz(clienteSocket);
             chat.setVisible(true);
@@ -229,6 +251,7 @@ public class clienteInterfaz extends javax.swing.JFrame {
             entradaServ = new DataInputStream(clienteSocket.getInputStream());
             salidaServ = new DataOutputStream(clienteSocket.getOutputStream());
 
+            //mandamos al servidor los datos del usuario
             salidaServ.writeUTF(usuario);
             salidaServ.flush();
             salidaServ.writeUTF(ip);
@@ -243,17 +266,21 @@ public class clienteInterfaz extends javax.swing.JFrame {
 
             while (conectado) {
                 try {
+                    //mientras esté conectado, escucha
                     mensaje2 = entradaServ.readUTF();
-                } catch (Exception ex) {               
-                    System.out.println("Conexión con el servidor cerrada");
+                } catch (Exception ex) {
+                    //Si el servidor se desconecta se avisa y la conexión termina
+                    JOptionPane.showMessageDialog(null,"Conexión con el servidor cerrada");
                     conectado = false;
                 }
+                //añadimos al chat lo recibido
                 cuerpoChat.append(mensaje2 + "\n");
             }
             if (!conectado) {
+                //desconexion, si el socket ya está cerrado, solo cierra el programa.
                 System.out.println("Te has desconectado");
-                if(!clienteSocket.isClosed()){
-                close();
+                if (!clienteSocket.isClosed()) {
+                    close();
                 }
                 System.exit(0);
 
@@ -264,6 +291,7 @@ public class clienteInterfaz extends javax.swing.JFrame {
 
     }
 
+    //Método de desconexión de cliente
     public static void close() {
         try {
             System.out.println("Desconectando...");
@@ -278,6 +306,20 @@ public class clienteInterfaz extends javax.swing.JFrame {
             System.out.println("Error al cerrar");
         }
     }
+
+    //Método para indicar usuario sin que sea nulo y que sea entre 3 y 10 caracteres
+    public static String selecUsuario() {
+        String usuario = JOptionPane.showInputDialog("Indique nombre de usuario");
+        String user = "guest";
+        if (!usuario.equals("") && usuario.length() >= 3 && usuario.length() <= 10) {
+            user = usuario;
+        } else {
+            JOptionPane.showMessageDialog(null, "Escriba un usuario de 3 a 10 caracteres");
+            user = selecUsuario();
+        }
+        return user;
+    }
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnEnviar;
