@@ -176,7 +176,6 @@ public class serverInterfaz extends javax.swing.JFrame {
                     cuerpoServidor.append("Conexión rechazada");
                     lClientes.remove(clientSocket);
                     entradaCli.close();
-                    salidaCli.close();
                     clientSocket.close();
                 }
                 String ip = entradaCli.readUTF();
@@ -213,7 +212,6 @@ public class serverInterfaz extends javax.swing.JFrame {
                     cuerpoServidor.append("Ningún cliente conectado." + "\n");
                 }
                 entradaCli.close();
-                salidaCli.close();
                 clientSocket.close();
 
             } catch (IOException ex) {

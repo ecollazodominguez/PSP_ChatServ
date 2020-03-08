@@ -173,6 +173,9 @@ public class clienteInterfaz extends javax.swing.JFrame {
                     salidaServ.writeUTF(mensaje);
                     salidaServ.flush();
                     conectado = false;
+            conecta = usuario + " abandonó este chat.";
+            salidaServ.writeUTF(conecta);
+            salidaServ.flush();
                     close();
                 } catch (IOException ex) {
                     Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
@@ -187,6 +190,9 @@ public class clienteInterfaz extends javax.swing.JFrame {
         try {
             salidaServ.writeUTF("/bye");
             close();
+            conecta = usuario + " abandonó este chat.";
+            salidaServ.writeUTF(conecta);
+            salidaServ.flush();
         } catch (IOException ex) {
             Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -240,13 +246,15 @@ public class clienteInterfaz extends javax.swing.JFrame {
                     mensaje2 = entradaServ.readUTF();
                 } catch (Exception ex) {               
                     System.out.println("Conexión con el servidor cerrada");
-                    close();
-                    System.exit(0);
+                    conectado = false;
                 }
                 cuerpoChat.append(mensaje2 + "\n");
             }
             if (!conectado) {
                 System.out.println("Te has desconectado");
+                if(!clienteSocket.isClosed()){
+                close();
+                }
                 System.exit(0);
 
             }
@@ -260,15 +268,13 @@ public class clienteInterfaz extends javax.swing.JFrame {
         try {
             System.out.println("Desconectando...");
             //Mensaje de desconexión
-            conecta = usuario + " abandonó este chat.";
-            salidaServ.writeUTF(conecta);
-            salidaServ.flush();
             System.out.println(clienteSocket.toString());
             entradaServ.close();
             salidaServ.close();
             clienteSocket.close();
             System.exit(0);
         } catch (IOException ex) {
+            Logger.getLogger(clienteInterfaz.class.getName()).log(Level.SEVERE, null, ex);
             System.out.println("Error al cerrar");
         }
     }
